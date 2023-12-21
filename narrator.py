@@ -1,102 +1,87 @@
+from flask import Flask, request, render_template, jsonify, send_from_directory, url_for
 import os
-from openai import OpenAI
 import base64
-import json
 import time
-import simpleaudio as sa
 import errno
-from elevenlabs import generate, play, set_api_key, voices
+from openai import OpenAI
+from elevenlabs import generate, set_api_key, voices
 
+
+
+app = Flask(__name__)
 client = OpenAI()
+
+UPLOAD_FOLDER = 'uploaded_images'
+AUDIO_FOLDER = 'narration'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2 Megabytes
 
 set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
 
-def encode_image(image_path):
-    while True:
-        try:
-            with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode("utf-8")
-        except IOError as e:
-            if e.errno != errno.EACCES:
-                # Not a "file in use" error, re-raise
-                raise
-            # File is being written to, wait a bit and retry
-            time.sleep(0.1)
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('upload.html')
 
+@app.route('/', methods=['POST'])
+def upload_file():
+    file = request.files.get('file')
+    if file and file.filename:
+        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filename)
+        return jsonify({'filename': filename})
+
+@app.route('/narrate', methods=['POST'])
+def narrate_image():
+    file = request.files.get('file')
+    if file and file.filename:
+        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filename)
+        base64_image = encode_image(filename)
+        analysis = analyze_image(base64_image, [])
+        audio_filename = play_audio(analysis)
+        audio_url = url_for('serve_audio', filename=audio_filename) if audio_filename else None
+        return jsonify({'analysis': analysis, 'audio_file': audio_url})
+
+
+def encode_image(image_path):
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
+    except IOError as e:
+        print(f"Error encoding image: {e}")
+        return None
 
 def play_audio(text):
-    audio = generate(text, voice=os.environ.get("ELEVENLABS_VOICE_ID"))
-
-    unique_id = base64.urlsafe_b64encode(os.urandom(30)).decode("utf-8").rstrip("=")
-    dir_path = os.path.join("narration", unique_id)
-    os.makedirs(dir_path, exist_ok=True)
-    file_path = os.path.join(dir_path, "audio.wav")
-
-    with open(file_path, "wb") as f:
-        f.write(audio)
-
-    play(audio)
-
+    try:
+        audio = generate(text, voice=os.environ.get("ELEVENLABS_VOICE_ID"))
+        unique_id = base64.urlsafe_b64encode(os.urandom(50)).decode("utf-8").rstrip("=")
+        dir_path = os.path.join(AUDIO_FOLDER, unique_id)
+        os.makedirs(dir_path, exist_ok=True)
+        audio_filename = os.path.join(dir_path, "audio.wav")
+        with open(audio_filename, "wb") as f:
+            f.write(audio)
+        return os.path.join(unique_id, "audio.wav")
+    except Exception as e:
+        print(f"Error generating audio: {e}")
+        return None
 
 def generate_new_line(base64_image):
-    return [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "Describe this image"},
-                {
-                    "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
-                },
-            ],
-        },
-    ]
-
+    return [{"role": "user", "content": [{"type": "text", "text": "Describe this image"}, {"type": "image_url", "image_url": f"data:image/jpeg;base64,{base64_image}"}]}]
 
 def analyze_image(base64_image, script):
     response = client.chat.completions.create(
         model="gpt-4-vision-preview",
-        messages=[
-            {
-                "role": "system",
-                "content": """
-                You are Sir David Attenborough. Narrate the picture of the human as if it is a nature documentary.
-                Make it snarky and funny. Don't repeat yourself. Make it short. If I do anything remotely interesting, make a big deal about it!
-                """,
-            },
-        ]
-        + script
-        + generate_new_line(base64_image),
-        max_tokens=500,
+        messages=[{"role": "system", "content": "You are Sir David Attenborough. Narrate the picture of the human as if it is a nature documentary. Make it snarky and funny. Don't repeat yourself. Make it short, no more than one sentence. use punctuations as if spoken, not written, meaning more pauses. If I do anything remotely interesting, make a big deal about it!"}] + script + generate_new_line(base64_image),
+        max_tokens=30,
     )
-    response_text = response.choices[0].message.content
-    return response_text
+    return response.choices[0].message.content
 
-
-def main():
-    script = []
-
-    while True:
-        # path to your image
-        image_path = os.path.join(os.getcwd(), "./frames/frame.jpg")
-
-        # getting the base64 encoding
-        base64_image = encode_image(image_path)
-
-        # analyze posture
-        print("👀 David is watching...")
-        analysis = analyze_image(base64_image, script=script)
-
-        print("🎙️ David says:")
-        print(analysis)
-
-        play_audio(analysis)
-
-        script = script + [{"role": "assistant", "content": analysis}]
-
-        # wait for 5 seconds
-        time.sleep(5)
-
+@app.route('/narration/<path:filename>')
+def serve_audio(filename):
+    return send_from_directory(AUDIO_FOLDER, filename)
 
 if __name__ == "__main__":
-    main()
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(AUDIO_FOLDER, exist_ok=True)
+    app.run(host='0.0.0.0', port=5000)
