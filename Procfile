@@ -1,1 +1,1 @@
-web:%20python%20narrator.py%0A
+web: python narrator.py
