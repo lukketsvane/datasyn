@@ -1,10 +1,13 @@
 from flask import Flask, request, render_template, jsonify, send_from_directory, url_for
-import os
 import base64
 import time
 import errno
 from openai import OpenAI
 from elevenlabs import generate, set_api_key, voices
+import os
+
+port = int(os.environ.get("PORT", 5000))
+
 
 
 
