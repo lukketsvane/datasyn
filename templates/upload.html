@@ -16,8 +16,17 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            max-width: 800px; /* Increased max width for better layout */
             margin: auto;
+            display: flex; /* Use flexbox to create a two-column layout */
+        }
+        .image-container {
+            flex: 1; /* Let the image column take 1/3 of the space */
+            padding: 20px;
+        }
+        .narration-container {
+            flex: 2; /* Let the narration column take 2/3 of the space */
+            padding: 20px;
         }
         input[type="file"] {
             border: none;
@@ -38,9 +47,8 @@
             background-color: #333;
         }
         #image-preview {
-            max-width: 100%;
+            max-width: 100%; /* Ensure the image is always the same size */
             height: auto;
-            margin-top: 20px;
             border-radius: 4px;
         }
         #narration-result {
@@ -61,20 +69,24 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Upload Image for Narration</h1>
-        <form id="upload-form">
-            <input type="file" name="file" id="image-input" accept="image/*">
-            <br>
-            <input type="submit" value="Upload">
-        </form>
-        <img id="image-preview" style="display:none;">
-        <div class="loader" id="loader"></div>
-        <div id="narration-result"></div>
+        <div class="image-container">
+            <h1>Uploaded Image</h1>
+            <img id="image-preview" style="display:none;">
+        </div>
+        <div class="narration-container">
+            <h1>Upload Image for Narration</h1>
+            <form id="upload-form">
+                <input type="file" name="file" id="image-input" accept="image/*">
+                <br>
+                <input type="submit" value="Upload">
+            </form>
+            <div class="loader" id="loader"></div>
+            <div id="narration-result"></div>
+        </div>
     </div>
 
     <script>
