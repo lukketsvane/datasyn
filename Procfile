@@ -1,1 +1,1 @@
-web: python narrator.py
+web: python app.py

@@ -17,7 +17,7 @@ narrator
  ┣ .env
  ┣ .gitignore
  ┣ README.md
- ┣ narrator.py
+ ┣ app.py
  ┣ runtime.txt
  ┣ Aptfile
  ┣ Procfile
