@@ -7,10 +7,6 @@ from elevenlabs import generate, set_api_key, voices
 import os
 
 port = int(os.environ.get("PORT", 5000))
-
-
-
-
 app = Flask(__name__)
 client = OpenAI()
 
@@ -18,7 +14,7 @@ UPLOAD_FOLDER = 'uploaded_images'
 AUDIO_FOLDER = 'narration'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2 Megabytes
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  
 
 set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
 
@@ -57,7 +53,11 @@ def encode_image(image_path):
 
 def play_audio(text):
     try:
-        audio = generate(text, voice=os.environ.get("ELEVENLABS_VOICE_ID"))
+        audio = generate(
+            text=text, 
+            voice=os.environ.get("ELEVENLABS_VOICE_ID"),
+            model="eleven_multilingual_v2"
+        )
         unique_id = base64.urlsafe_b64encode(os.urandom(50)).decode("utf-8").rstrip("=")
         dir_path = os.path.join(AUDIO_FOLDER, unique_id)
         os.makedirs(dir_path, exist_ok=True)
@@ -75,8 +75,11 @@ def generate_new_line(base64_image):
 def analyze_image(base64_image, script):
     response = client.chat.completions.create(
         model="gpt-4-vision-preview",
-        messages=[{"role": "system", "content": "You are Sir David Attenborough. Narrate the picture of the human as if it is a nature documentary. Make it snarky and funny. Don't repeat yourself. Make it short, no more than one sentence. use punctuations as if spoken, not written, meaning more pauses. If I do anything remotely interesting, make a big deal about it!"}] + script + generate_new_line(base64_image),
-        max_tokens=30,
+        messages=[{
+        "role": "system",
+        "content": "Beskriv billedet som om du taler, med naturlige pauser. Hvis der er noget interessant i billedet, så gør gerne opmærksom på det! skriv på svenska."
+        }] + script + generate_new_line(base64_image),
+        max_tokens=80,
     )
     return response.choices[0].message.content
 

@@ -7,7 +7,7 @@ narrator
  ┣ frames
  ┃ ┗ .gitkeep
  ┣ narration
- ┃ ┗ vGbKaNxPUSMxmeOtu2vENm-_NC4jyUAj7uq6PFg69c1KFNMbhgQhm4e6AjGpzSoQ4FU
+ ┃ ┗ audio responsen example
  ┃ ┃ ┗ audio.wav
  ┣ templates
  ┃ ┗ upload.html
@@ -17,5 +17,8 @@ narrator
  ┣ .env
  ┣ .gitignore
  ┣ README.md
- ┣ narrator2.py
+ ┣ narrator.py
+ ┣ runtime.txt
+ ┣ Aptfile
+ ┣ Procfile
  ┗ requirements.txt
