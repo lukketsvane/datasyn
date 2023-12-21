@@ -1,0 +1,21 @@
+# .vercelignore
+
+# Exclude development and system files
+*.pyc
+__pycache__
+.vscode
+.idea
+.env
+.git
+
+# Exclude unnecessary directories
+assets/
+frames/
+uploaded_images/
+
+# Exclude test files
+tests/
+test/
+
+# Exclude notebooks
+*.ipynb
